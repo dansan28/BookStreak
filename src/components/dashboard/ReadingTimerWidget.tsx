@@ -12,6 +12,7 @@ import { useReadingTimer } from "@/context/ReadingTimerContext";
 import { createClient } from "@/lib/supabase/client";
 import { uploadReadingPhoto } from "@/lib/storage";
 import { formatSeconds } from "@/utils/formatTime";
+import { BookFinishedModal } from "@/components/dashboard/BookFinishedModal";
 import type { Book } from "@/types";
 export function ReadingTimerWidget({ books }: { books: Book[] }) {
   const { isRunning, elapsedSeconds, selectedBookId, start, stop } = useReadingTimer();
@@ -21,6 +22,7 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
   const [saving, setSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [finishedBook, setFinishedBook] = useState<Book | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Default to first "reading" book, then first "pending" book
@@ -64,6 +66,14 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
 
   const handleStop = async () => {
     setSaving(true);
+    const pages = parseInt(pagesRead) || 0;
+
+    // Detectar si el libro se termina con esta sesión
+    const willFinish =
+      currentBook &&
+      currentBook.total_pages > 0 &&
+      currentBook.current_page + pages >= currentBook.total_pages;
+
     let photoUrl: string | undefined;
     if (photoFile) {
       const supabase = createClient();
@@ -72,11 +82,13 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
         photoUrl = (await uploadReadingPhoto(user.id, photoFile)) ?? undefined;
       }
     }
-    await stop(parseInt(pagesRead) || 0, photoUrl);
+    await stop(pages, photoUrl);
     setSaving(false);
     setShowStopModal(false);
     setPagesRead("0");
     removePhoto();
+
+    if (willFinish && currentBook) setFinishedBook(currentBook);
   };
 
   if (books.length === 0) {
@@ -212,6 +224,13 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
           </div>
         </div>
       </Card>
+
+      {finishedBook && (
+        <BookFinishedModal
+          book={finishedBook}
+          onClose={() => setFinishedBook(null)}
+        />
+      )}
 
       <Modal open={showStopModal} onClose={() => setShowStopModal(false)} title="Finalizar sesión">
         <div className="space-y-4">

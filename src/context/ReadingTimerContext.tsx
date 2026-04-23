@@ -16,6 +16,8 @@ interface TimerContextValue {
   elapsedSeconds: number;
   selectedBookId: string | null;
   start: (bookId: string) => void;
+  pause: () => void;
+  resume: () => void;
   stop: (pagesRead?: number, photoUrl?: string) => Promise<void>;
   reset: () => void;
 }
