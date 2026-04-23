@@ -45,6 +45,15 @@ const config: Config = {
         "card-hover": "0 4px 12px rgba(155,114,207,0.15)",
         glow: "0 0 20px rgba(155,114,207,0.3)",
       },
+      animation: {
+        "pulse-slow": "pulse-slow 3s ease-in-out infinite",
+      },
+      keyframes: {
+        "pulse-slow": {
+          "0%, 100%": { boxShadow: "0 0 12px rgba(155,114,207,0.3)" },
+          "50%":       { boxShadow: "0 0 24px rgba(155,114,207,0.6)" },
+        },
+      },
     },
   },
   plugins: [],

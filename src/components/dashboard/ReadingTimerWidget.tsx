@@ -175,8 +175,13 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
                 Detener
               </Button>
             ) : (
-              <Button size="md" onClick={handleStart} disabled={!activeBookId}>
-                <Play size={13} />
+              <Button
+                size="lg"
+                onClick={handleStart}
+                disabled={!activeBookId}
+                className="shadow-glow animate-pulse-slow px-6 font-bold tracking-wide"
+              >
+                <Play size={16} fill="currentColor" />
                 Leer
               </Button>
             )}
