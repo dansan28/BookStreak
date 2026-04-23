@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #FAF7F2;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F5F0E8;
+  --text-primary: #1A1523;
+  --text-muted: #6B6578;
+  --accent: #9B72CF;
+  --accent-hover: #6B4FA0;
+  --border: rgba(155, 114, 207, 0.15);
+}
+
+.dark {
+  --bg-primary: #15151F;
+  --bg-card: #1E1E2E;
+  --bg-card-hover: #252535;
+  --text-primary: #E8E4F0;
+  --text-muted: #8B849A;
+  --accent: #9B72CF;
+  --accent-hover: #B99FE0;
+  --border: rgba(155, 114, 207, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(155, 114, 207, 0.2);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
