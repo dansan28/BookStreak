@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { WeeklyActivityChart } from "@/components/stats/WeeklyActivityChart";
 import { SessionHistoryList } from "@/components/stats/SessionHistoryList";
+import { ReadingCalendar } from "@/components/stats/ReadingCalendar";
 import { Flame, Clock, BookCheck, TrendingUp } from "lucide-react";
 import { formatTotalMinutes, sevenDaysAgoString, todayDateString } from "@/utils/formatTime";
 import type { DailyStats } from "@/types";
@@ -13,6 +14,9 @@ export default async function StatsPage() {
 
   const sevenDaysAgo = sevenDaysAgoString();
   const today = todayDateString();
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const oneYearAgoStr = oneYearAgo.toISOString().split("T")[0];
 
   const [
     { data: profile },
@@ -20,6 +24,7 @@ export default async function StatsPage() {
     { data: allSessions },
     { data: finishedBooks },
     { data: sessionHistory },
+    { data: yearSessions },
   ] = await Promise.all([
     supabase.from("profiles").select("current_streak, longest_streak").eq("user_id", user.id).single(),
     supabase
@@ -37,9 +42,22 @@ export default async function StatsPage() {
       .eq("user_id", user.id)
       .order("date", { ascending: false })
       .limit(20),
+    supabase
+      .from("reading_sessions")
+      .select("date, duration_minutes")
+      .eq("user_id", user.id)
+      .gte("date", oneYearAgoStr)
+      .order("date"),
   ]);
 
   const totalMinutes = (allSessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
+
+  // Agrega minutos por día para el calendario
+  const calendarMap: Record<string, number> = {};
+  (yearSessions ?? []).forEach(({ date, duration_minutes }) => {
+    calendarMap[date] = (calendarMap[date] ?? 0) + duration_minutes;
+  });
+  const calendarData = Object.entries(calendarMap).map(([date, minutes]) => ({ date, minutes }));
 
   const weekMap: Record<string, number> = {};
   for (let i = 6; i >= 0; i--) {
@@ -84,6 +102,13 @@ export default async function StatsPage() {
           Actividad últimos 7 días
         </h3>
         <WeeklyActivityChart data={weekData} />
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">
+          Actividad del año
+        </h3>
+        <ReadingCalendar data={calendarData} currentStreak={profile?.current_streak ?? 0} />
       </Card>
 
       <Card className="p-5">
