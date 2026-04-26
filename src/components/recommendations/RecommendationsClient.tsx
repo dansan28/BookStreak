@@ -280,6 +280,7 @@ export function RecommendationsClient({ readBooks, userBookTitles }: Recommendat
   const [selectedGenre, setSelectedGenre] = useState<GenreId>("all");
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const sectionsCache = useRef(new Map<GenreId, Section[]>());
   const [addedTitles, setAddedTitles] = useState<Set<string>>(() => new Set(userBookTitles));
   const [selectedBook, setSelectedBook] = useState<MappedBook | null>(null);
 
@@ -320,6 +321,13 @@ export function RecommendationsClient({ readBooks, userBookTitles }: Recommendat
 
   useEffect(() => {
     const load = async () => {
+      const cached = sectionsCache.current.get(selectedGenre);
+      if (cached) {
+        setSections(cached);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const built: Section[] = [];
 
@@ -358,6 +366,7 @@ export function RecommendationsClient({ readBooks, userBookTitles }: Recommendat
         });
       }
 
+      sectionsCache.current.set(selectedGenre, built);
       setSections(built);
       setLoading(false);
     };

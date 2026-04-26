@@ -18,7 +18,7 @@ interface TimerContextValue {
   start: (bookId: string) => void;
   pause: () => void;
   resume: () => void;
-  stop: (pagesRead?: number, photoUrl?: string) => Promise<void>;
+  stop: (pagesRead?: number, photoUrl?: string, note?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -69,7 +69,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const stop = useCallback(
-    async (pagesRead = 0, photoUrl?: string) => {
+    async (pagesRead = 0, photoUrl?: string, note?: string) => {
       if (!selectedBookId) return;
       setIsRunning(false);
       const durationMinutes = Math.max(1, Math.floor(elapsedSeconds / 60));
@@ -86,6 +86,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
           pages_read: pagesRead,
           date: todayDateString(),
           ...(photoUrl ? { photo_url: photoUrl } : {}),
+          ...(note?.trim() ? { note: note.trim() } : {}),
         });
 
         if (pagesRead > 0) {

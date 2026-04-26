@@ -1,6 +1,9 @@
 const BASE_URL = "https://www.googleapis.com/books/v1/volumes";
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY ?? "";
 
+// In-memory cache: avoids re-fetching the same query within a browser session
+const queryCache = new Map<string, MappedBook[]>();
+
 export interface GoogleBookVolume {
   id: string;
   volumeInfo: {
@@ -62,6 +65,10 @@ function mapVolume(vol: GoogleBookVolume): MappedBook {
   };
 }
 async function fetchVolumes(params: Record<string, string | number>): Promise<MappedBook[]> {
+  const cacheKey = JSON.stringify(params);
+  const cached = queryCache.get(cacheKey);
+  if (cached) return cached;
+
   try {
     const url = buildUrl(params);
     const res = await fetch(url);
@@ -70,7 +77,9 @@ async function fetchVolumes(params: Record<string, string | number>): Promise<Ma
       return [];
     }
     const data = await res.json();
-    return ((data.items ?? []) as GoogleBookVolume[]).map(mapVolume);
+    const books = ((data.items ?? []) as GoogleBookVolume[]).map(mapVolume);
+    queryCache.set(cacheKey, books);
+    return books;
   } catch (e) {
     console.error("Google Books fetch failed:", e);
     return [];

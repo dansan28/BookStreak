@@ -14,6 +14,7 @@ import { uploadReadingPhoto } from "@/lib/storage";
 import { formatSeconds } from "@/utils/formatTime";
 import { cn } from "@/utils/cn";
 import { BookFinishedModal } from "@/components/dashboard/BookFinishedModal";
+import { SessionCompleteCard, type SessionCompleteData } from "@/components/dashboard/SessionCompleteCard";
 import type { Book } from "@/types";
 export function ReadingTimerWidget({ books }: { books: Book[] }) {
   const { isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset } = useReadingTimer();
@@ -21,9 +22,11 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
   const [showStopModal, setShowStopModal] = useState(false);
   const [pagesRead, setPagesRead] = useState("0");
   const [saving, setSaving] = useState(false);
+  const [sessionNote, setSessionNote] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [finishedBook, setFinishedBook] = useState<Book | null>(null);
+  const [sessionComplete, setSessionComplete] = useState<SessionCompleteData | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -97,34 +100,56 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
     reset();
     setShowStopModal(false);
     setPagesRead("0");
+    setSessionNote("");
     removePhoto();
   };
 
   const handleStop = async () => {
     setSaving(true);
     const pages = parseInt(pagesRead) || 0;
+    const capturedDuration = elapsedSeconds;
+    const capturedBook = currentBook;
 
-    // Detectar si el libro se termina con esta sesión
     const willFinish =
-      currentBook &&
-      currentBook.total_pages > 0 &&
-      currentBook.current_page + pages >= currentBook.total_pages;
+      capturedBook &&
+      capturedBook.total_pages > 0 &&
+      capturedBook.current_page + pages >= capturedBook.total_pages;
 
     let photoUrl: string | undefined;
-    if (photoFile) {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        photoUrl = (await uploadReadingPhoto(user.id, photoFile)) ?? undefined;
-      }
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (photoFile && user) {
+      photoUrl = (await uploadReadingPhoto(user.id, photoFile)) ?? undefined;
     }
-    await stop(pages, photoUrl);
+
+    await stop(pages, photoUrl, sessionNote);
+
+    let streak = 0;
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("current_streak")
+        .eq("user_id", user.id)
+        .single();
+      streak = profile?.current_streak ?? 0;
+    }
+
     setSaving(false);
     setShowStopModal(false);
     setPagesRead("0");
+    setSessionNote("");
     removePhoto();
 
-    if (willFinish && currentBook) setFinishedBook(currentBook);
+    if (willFinish && capturedBook) {
+      setFinishedBook(capturedBook);
+    } else {
+      setSessionComplete({
+        durationSeconds: capturedDuration,
+        pagesRead: pages,
+        bookTitle: capturedBook?.title ?? "",
+        currentStreak: streak,
+      });
+    }
   };
 
   if (books.length === 0) {
@@ -314,6 +339,13 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
         />
       )}
 
+      {sessionComplete && !finishedBook && (
+        <SessionCompleteCard
+          {...sessionComplete}
+          onClose={() => setSessionComplete(null)}
+        />
+      )}
+
       <Modal open={showStopModal} onClose={handleDismiss} title="Finalizar sesión">
         <div className="space-y-4">
           <div className="bg-[var(--bg-card-hover)] rounded-xl p-3 text-center">
@@ -368,6 +400,22 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
               onChange={handlePhotoChange}
               className="hidden"
             />
+          </div>
+
+          {/* Session note */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">¿Qué te pareció? (opcional)</p>
+            <textarea
+              value={sessionNote}
+              onChange={(e) => setSessionNote(e.target.value)}
+              placeholder="Tus pensamientos sobre lo que leíste..."
+              maxLength={500}
+              rows={3}
+              className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg-card-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-plum/50 transition-colors"
+            />
+            {sessionNote.length > 0 && (
+              <p className="text-[10px] text-[var(--text-muted)] text-right">{sessionNote.length}/500</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { WeeklyActivityChart } from "@/components/stats/WeeklyActivityChart";
 import { SessionHistoryList } from "@/components/stats/SessionHistoryList";
-import { ReadingCalendar } from "@/components/stats/ReadingCalendar";
+import { CalendarWithDetail, type PreloadedSession } from "@/components/stats/CalendarWithDetail";
 import { Flame, Clock, BookCheck, TrendingUp } from "lucide-react";
 import { formatTotalMinutes, sevenDaysAgoString, todayDateString } from "@/utils/formatTime";
 import type { DailyStats } from "@/types";
@@ -21,12 +21,14 @@ export default async function StatsPage() {
   const [
     { data: profile },
     { data: recentSessions },
-    { data: allSessions },
-    { data: finishedBooks },
     { data: sessionHistory },
     { data: yearSessions },
   ] = await Promise.all([
-    supabase.from("profiles").select("current_streak, longest_streak").eq("user_id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("current_streak, longest_streak, total_minutes, books_finished")
+      .eq("user_id", user.id)
+      .single(),
     supabase
       .from("reading_sessions")
       .select("date, duration_minutes")
@@ -34,14 +36,12 @@ export default async function StatsPage() {
       .gte("date", sevenDaysAgo)
       .lte("date", today)
       .order("date"),
-    supabase.from("reading_sessions").select("duration_minutes").eq("user_id", user.id),
-    supabase.from("books").select("id").eq("user_id", user.id).eq("status", "finished"),
     supabase
       .from("reading_sessions")
-      .select("id, duration_minutes, pages_read, date, created_at, books(title, cover_url)")
+      .select("id, duration_minutes, pages_read, date, created_at, note, books(title, cover_url)")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(100),
+      .gte("date", sevenDaysAgo)
+      .order("created_at", { ascending: false }),
     supabase
       .from("reading_sessions")
       .select("date, duration_minutes")
@@ -50,7 +50,19 @@ export default async function StatsPage() {
       .order("date"),
   ]);
 
-  const totalMinutes = (allSessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
+  const totalMinutes = profile?.total_minutes ?? 0;
+
+  const preloadedSessions: PreloadedSession[] = (sessionHistory ?? []).map((s) => ({
+    id: s.id,
+    duration_minutes: s.duration_minutes,
+    pages_read: s.pages_read,
+    date: s.date,
+    created_at: s.created_at,
+    note: (s as Record<string, unknown>).note as string | null ?? null,
+    books: Array.isArray(s.books)
+      ? (s.books[0] as PreloadedSession["books"]) ?? null
+      : s.books as PreloadedSession["books"],
+  }));
 
   // Agrega minutos por día para el calendario
   const calendarMap: Record<string, number> = {};
@@ -74,7 +86,7 @@ export default async function StatsPage() {
     { icon: Flame, label: "Racha actual", value: `${profile?.current_streak ?? 0} días`, color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/30" },
     { icon: TrendingUp, label: "Mejor racha", value: `${profile?.longest_streak ?? 0} días`, color: "text-plum", bg: "bg-plum/10 dark:bg-plum/20" },
     { icon: Clock, label: "Tiempo total", value: formatTotalMinutes(totalMinutes), color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/30" },
-    { icon: BookCheck, label: "Libros leídos", value: String((finishedBooks ?? []).length), color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
+    { icon: BookCheck, label: "Libros leídos", value: String(profile?.books_finished ?? 0), color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
   ];
 
   return (
@@ -108,19 +120,18 @@ export default async function StatsPage() {
         <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">
           Actividad del año
         </h3>
-        <ReadingCalendar data={calendarData} currentStreak={profile?.current_streak ?? 0} />
+        <CalendarWithDetail
+          data={calendarData}
+          currentStreak={profile?.current_streak ?? 0}
+          preloadedSessions={preloadedSessions}
+        />
       </Card>
 
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-4">
-          Historial de sesiones
+          Sesiones de esta semana
         </h3>
-        <SessionHistoryList
-          sessions={(sessionHistory ?? []).map((s) => ({
-            ...s,
-            books: Array.isArray(s.books) ? s.books[0] ?? null : s.books,
-          }))}
-        />
+        <SessionHistoryList sessions={preloadedSessions} />
       </Card>
     </div>
   );

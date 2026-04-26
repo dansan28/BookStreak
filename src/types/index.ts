@@ -9,6 +9,9 @@ export interface Profile {
   current_streak: number;
   longest_streak: number;
   last_read_date: string | null;
+  total_minutes: number;
+  total_pages_read: number;
+  books_finished: number;
   created_at: string;
 }
 
@@ -33,6 +36,7 @@ export interface ReadingSession {
   duration_minutes: number;
   pages_read: number;
   date: string;
+  note: string | null;
   created_at: string;
 }
 

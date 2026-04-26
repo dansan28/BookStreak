@@ -11,6 +11,7 @@ interface SessionWithBook {
   pages_read: number;
   date: string;
   created_at?: string;
+  note?: string | null;
   books: { title: string; cover_url?: string | null } | null;
 }
 
@@ -106,6 +107,11 @@ export function SessionHistoryList({ sessions }: { sessions: SessionWithBook[] }
                       </>
                     )}
                   </div>
+                  {session.note && (
+                    <p className="mt-1 text-xs text-[var(--text-muted)] italic line-clamp-2 leading-relaxed">
+                      &ldquo;{session.note}&rdquo;
+                    </p>
+                  )}
                 </div>
                 <span className="text-sm font-semibold text-plum flex-shrink-0">
                   {formatMinutes(session.duration_minutes)}

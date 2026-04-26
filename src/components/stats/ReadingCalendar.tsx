@@ -11,6 +11,8 @@ interface DayData {
 interface ReadingCalendarProps {
   data: DayData[];
   currentStreak: number;
+  selectedDate?: string | null;
+  onDayClick?: (date: string) => void;
 }
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -20,7 +22,7 @@ function toDateStr(d: Date) {
   return d.toISOString().split("T")[0];
 }
 
-export function ReadingCalendar({ data, currentStreak }: ReadingCalendarProps) {
+export function ReadingCalendar({ data, currentStreak, selectedDate, onDayClick }: ReadingCalendarProps) {
   const today = useMemo(() => { const d = new Date(); d.setHours(12,0,0,0); return d; }, []);
 
   const [viewYear,  setViewYear]  = useState(today.getFullYear());
@@ -143,8 +145,11 @@ export function ReadingCalendar({ data, currentStreak }: ReadingCalendarProps) {
               {/* Círculo del día */}
               <div
                 title={hasRead ? `${minutes} min` : undefined}
+                onClick={() => hasRead && !isFuture && onDayClick?.(dateStr)}
                 className={`
                   relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all select-none
+                  ${hasRead && !isFuture ? "cursor-pointer hover:scale-110 active:scale-95" : ""}
+                  ${selectedDate === dateStr ? "ring-2 ring-offset-1 ring-offset-[var(--bg-card)] ring-plum" : ""}
                   ${isFuture
                     ? "text-[var(--text-muted)] opacity-30"
                     : isStreak

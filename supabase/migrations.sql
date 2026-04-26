@@ -62,6 +62,66 @@ create table public.reading_sessions (
 create index sessions_user_date_idx on public.reading_sessions(user_id, date);
 create index sessions_book_idx on public.reading_sessions(book_id);
 
+-- Add note column (run separately if table already exists)
+-- alter table public.reading_sessions add column if not exists note text;
+
+-- 6. RUNNING TOTALS IN PROFILES
+-- Run this block in the Supabase SQL editor after the tables above exist.
+
+alter table public.profiles
+  add column if not exists total_minutes    int not null default 0,
+  add column if not exists total_pages_read int not null default 0,
+  add column if not exists books_finished   int not null default 0;
+
+-- Increment totals when a reading session is inserted
+create or replace function public.increment_reading_totals()
+returns trigger language plpgsql security definer as $$
+begin
+  update public.profiles
+     set total_minutes    = total_minutes    + new.duration_minutes,
+         total_pages_read = total_pages_read + new.pages_read
+   where user_id = new.user_id;
+  return new;
+end;
+$$;
+
+create trigger on_session_insert
+  after insert on public.reading_sessions
+  for each row execute function public.increment_reading_totals();
+
+-- Keep books_finished in sync with books table changes
+create or replace function public.sync_books_finished()
+returns trigger language plpgsql security definer as $$
+begin
+  if tg_op = 'insert' then
+    if new.status = 'finished' then
+      update public.profiles set books_finished = books_finished + 1 where user_id = new.user_id;
+    end if;
+  elsif tg_op = 'update' then
+    if old.status != 'finished' and new.status = 'finished' then
+      update public.profiles set books_finished = books_finished + 1 where user_id = new.user_id;
+    elsif old.status = 'finished' and new.status != 'finished' then
+      update public.profiles set books_finished = books_finished - 1 where user_id = new.user_id;
+    end if;
+  elsif tg_op = 'delete' then
+    if old.status = 'finished' then
+      update public.profiles set books_finished = books_finished - 1 where user_id = old.user_id;
+    end if;
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+create trigger on_book_change
+  after insert or update or delete on public.books
+  for each row execute function public.sync_books_finished();
+
+-- Backfill existing data (run once after adding the columns)
+update public.profiles p set
+  total_minutes    = coalesce((select sum(duration_minutes) from public.reading_sessions where user_id = p.user_id), 0),
+  total_pages_read = coalesce((select sum(pages_read)       from public.reading_sessions where user_id = p.user_id), 0),
+  books_finished   = coalesce((select count(*)              from public.books             where user_id = p.user_id and status = 'finished'), 0);
+
 -- 4. STREAK UPDATE FUNCTION
 create or replace function public.update_streak(p_user_id uuid)
 returns void language plpgsql security definer as $$

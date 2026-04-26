@@ -18,8 +18,6 @@ export default async function DashboardPage() {
     { data: profile },
     { data: readingBooks },
     { data: todaySessions },
-    { data: allSessions },
-    { data: finishedBooks },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
     supabase
@@ -34,21 +32,12 @@ export default async function DashboardPage() {
       .select("duration_minutes")
       .eq("user_id", user.id)
       .eq("date", today),
-    supabase
-      .from("reading_sessions")
-      .select("duration_minutes, pages_read")
-      .eq("user_id", user.id),
-    supabase
-      .from("books")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("status", "finished"),
   ]);
 
   const todayMinutes = (todaySessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
-  const totalMinutes = (allSessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
-  const totalPages = (allSessions ?? []).reduce((s, r) => s + r.pages_read, 0);
-  const booksFinished = (finishedBooks ?? []).length;
+  const totalMinutes = profile?.total_minutes ?? 0;
+  const totalPages = profile?.total_pages_read ?? 0;
+  const booksFinished = profile?.books_finished ?? 0;
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
