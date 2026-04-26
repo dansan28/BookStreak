@@ -27,6 +27,8 @@ const ReadingTimerContext = createContext<TimerContextValue>({
   elapsedSeconds: 0,
   selectedBookId: null,
   start: () => {},
+  pause: () => {},
+  resume: () => {},
   stop: async () => {},
   reset: () => {},
 });
@@ -55,6 +57,14 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
   const start = useCallback((bookId: string) => {
     setSelectedBookId(bookId);
     setElapsedSeconds(0);
+    setIsRunning(true);
+  }, []);
+
+  const pause = useCallback(() => {
+    setIsRunning(false);
+  }, []);
+
+  const resume = useCallback(() => {
     setIsRunning(true);
   }, []);
 
@@ -132,7 +142,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
 
   return (
     <ReadingTimerContext.Provider
-      value={{ isRunning, elapsedSeconds, selectedBookId, start, stop, reset }}
+      value={{ isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset }}
     >
       {children}
     </ReadingTimerContext.Provider>

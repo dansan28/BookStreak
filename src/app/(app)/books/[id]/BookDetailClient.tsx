@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Pencil, Trash2, TriangleAlert } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StarRating } from "@/components/ui/StarRating";
 import { BookStatusBadge } from "@/components/books/BookStatusBadge";
@@ -23,6 +24,7 @@ export function BookDetailClient({ book, sessions, totalMinutes }: Props) {
   const router = useRouter();
   const { deleteBook, updateRating } = useBooks();
   const [showEdit, setShowEdit] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -31,7 +33,6 @@ export function BookDetailClient({ book, sessions, totalMinutes }: Props) {
     : 0;
 
   const handleDelete = async () => {
-    if (!confirm("¿Eliminar este libro? Esta acción no se puede deshacer.")) return;
     setDeleting(true);
     await deleteBook(book.id);
     router.push("/books");
@@ -124,13 +125,54 @@ export function BookDetailClient({ book, sessions, totalMinutes }: Props) {
             <Pencil size={14} />
             Editar
           </Button>
-          <Button variant="danger" onClick={handleDelete} loading={deleting}>
+          <Button variant="danger" onClick={() => setShowDeleteModal(true)} loading={deleting}>
             <Trash2 size={14} />
           </Button>
         </div>
       </Card>
 
       <EditBookModal book={book} open={showEdit} onClose={() => setShowEdit(false)} />
+
+      <Modal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Eliminar libro"
+        className="max-w-sm"
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex gap-3 items-start">
+            <div className="p-2 rounded-xl bg-red-500/10 flex-shrink-0">
+              <TriangleAlert size={18} className="text-red-500 dark:text-red-400" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                ¿Eliminar &ldquo;{book.title}&rdquo;?
+              </p>
+              <p className="text-sm text-[var(--text-muted)]">
+                Se borrarán el libro y todas sus sesiones de lectura. Esta acción no se puede deshacer.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              loading={deleting}
+              className="bg-red-500/15 hover:bg-red-500/25 dark:bg-red-500/20 dark:hover:bg-red-500/30"
+            >
+              <Trash2 size={14} />
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

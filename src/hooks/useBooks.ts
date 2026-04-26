@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { BookStatus } from "@/types";
 
@@ -33,6 +34,7 @@ export function useBooks() {
     });
 
     if (error) throw error;
+    toast.success(`"${input.title}" agregado a tu biblioteca`);
     router.refresh();
   };
 
@@ -50,24 +52,28 @@ export function useBooks() {
   ) => {
     const { error } = await supabase.from("books").update(updates).eq("id", id);
     if (error) throw error;
+    toast.success("Libro actualizado");
     router.refresh();
   };
 
   const deleteBook = async (id: string) => {
     const { error } = await supabase.from("books").delete().eq("id", id);
     if (error) throw error;
+    toast.success("Libro eliminado");
     router.refresh();
   };
 
   const updateStatus = async (id: string, status: BookStatus) => {
     const { error } = await supabase.from("books").update({ status }).eq("id", id);
     if (error) throw error;
+    toast.success("Estado actualizado");
     router.refresh();
   };
 
   const updateRating = async (id: string, rating: number) => {
     const { error } = await supabase.from("books").update({ rating }).eq("id", id);
     if (error) throw error;
+    toast.success("Calificación guardada");
     router.refresh();
   };
 

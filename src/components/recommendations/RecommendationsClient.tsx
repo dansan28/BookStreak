@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BookOpen, Plus, Loader2, Star, X } from "lucide-react";
-import { getBooksByAuthor, getPopularBooks, type MappedBook } from "@/lib/googleBooks";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { BookOpen, Plus, Loader2, Star, X, Search } from "lucide-react";
+import { getBooksByAuthor, getPopularBooks, searchBooks, type MappedBook } from "@/lib/googleBooks";
 import { useBooks } from "@/hooks/useBooks";
 import { cn } from "@/utils/cn";
 
@@ -283,6 +283,41 @@ export function RecommendationsClient({ readBooks, userBookTitles }: Recommendat
   const [addedTitles, setAddedTitles] = useState<Set<string>>(() => new Set(userBookTitles));
   const [selectedBook, setSelectedBook] = useState<MappedBook | null>(null);
 
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<MappedBook[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    setSearchError(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!val.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      const found = await searchBooks(val.trim());
+      setSearching(false);
+      setSearchResults(found);
+      if (found.length === 0) setSearchError(true);
+    }, 450);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setQuery("");
+    setSearchResults([]);
+    setSearchError(false);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -351,45 +386,112 @@ export function RecommendationsClient({ readBooks, userBookTitles }: Recommendat
     }
   };
 
+  const isSearching = query.trim().length > 0;
+
   return (
     <>
-      {/* Tabs de género */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide mb-6">
-        {GENRES.map(({ id, label }) => (
+      {/* Barra de búsqueda persistente */}
+      <div className="relative mb-4">
+        <Search
+          size={15}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"
+        />
+        <input
+          type="text"
+          value={query}
+          onChange={handleQueryChange}
+          placeholder="Buscar libros por título o autor..."
+          className={cn(
+            "w-full pl-9 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]",
+            "text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+            "focus:outline-none focus:ring-2 focus:ring-plum/40 transition-colors",
+            isSearching ? "pr-9" : "pr-4"
+          )}
+        />
+        {searching && (
+          <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-plum animate-spin" />
+        )}
+        {isSearching && !searching && (
           <button
-            key={id}
-            onClick={() => setSelectedGenre(id)}
-            className={cn(
-              "flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all",
-              selectedGenre === id
-                ? "bg-plum text-white"
-                : "bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            )}
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {label}
+            <X size={15} />
           </button>
-        ))}
+        )}
       </div>
 
-      {loading ? (
-        <LoadingSkeleton />
-      ) : sections.length === 0 ? (
-        <div className="text-center py-16 text-[var(--text-muted)]">
-          <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No pudimos cargar recomendaciones</p>
-          <p className="text-xs mt-1">Revisa tu conexión e intenta de nuevo</p>
+      {isSearching ? (
+        /* ── Vista de búsqueda ── */
+        <div>
+          {searching ? (
+            <div className="flex justify-center py-16">
+              <Loader2 size={24} className="text-plum animate-spin" />
+            </div>
+          ) : searchError ? (
+            <div className="text-center py-16 text-[var(--text-muted)]">
+              <Search size={28} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No encontramos resultados para &ldquo;{query}&rdquo;</p>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <>
+              <p className="text-xs text-[var(--text-muted)] mb-4">
+                {searchResults.length} resultado{searchResults.length !== 1 ? "s" : ""} para &ldquo;{query}&rdquo;
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {searchResults.map((book) => (
+                  <RecommendationCard
+                    key={book.googleId}
+                    book={book}
+                    onSelect={setSelectedBook}
+                    added={addedTitles.has(book.title.toLowerCase())}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       ) : (
-        <div className="space-y-8">
-          {sections.map((section) => (
-            <HorizontalSection
-              key={section.title}
-              section={section}
-              addedTitles={addedTitles}
-              onSelect={setSelectedBook}
-            />
-          ))}
-        </div>
+        /* ── Vista de recomendaciones ── */
+        <>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide mb-6">
+            {GENRES.map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setSelectedGenre(id)}
+                className={cn(
+                  "flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all",
+                  selectedGenre === id
+                    ? "bg-plum text-white"
+                    : "bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <LoadingSkeleton />
+          ) : sections.length === 0 ? (
+            <div className="text-center py-16 text-[var(--text-muted)]">
+              <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No pudimos cargar recomendaciones</p>
+              <p className="text-xs mt-1">Revisa tu conexión e intenta de nuevo</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {sections.map((section) => (
+                <HorizontalSection
+                  key={section.title}
+                  section={section}
+                  addedTitles={addedTitles}
+                  onSelect={setSelectedBook}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {selectedBook && (

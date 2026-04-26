@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, BookOpen, Plus, Loader2, ChevronRight, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -71,7 +72,6 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
-  const [addError, setAddError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Manual form state
@@ -83,7 +83,6 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
     status: "pending" as "pending" | "reading",
   });
   const [manualLoading, setManualLoading] = useState(false);
-  const [manualError, setManualError] = useState("");
 
   const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -117,15 +116,12 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
       setResults([]);
       setSearchError(false);
       setAddingId(null);
-      setAddError("");
       setForm({ title: "", author: "", total_pages: "", cover_url: "", status: "pending" });
-      setManualError("");
     }
   }, [open]);
 
   const handleAddFromSearch = async (book: MappedBook) => {
     setAddingId(book.googleId);
-    setAddError("");
     try {
       await addBook({
         title: book.title,
@@ -143,7 +139,7 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
           : typeof e === "object" && e !== null && "message" in e
           ? String((e as { message: unknown }).message)
           : "Error al agregar el libro";
-      setAddError(msg);
+      toast.error(msg);
       setAddingId(null);
     }
   };
@@ -151,10 +147,9 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.author.trim()) {
-      setManualError("Título y autor son obligatorios");
+      toast.error("Título y autor son obligatorios");
       return;
     }
-    setManualError("");
     setManualLoading(true);
     try {
       await addBook({
@@ -166,7 +161,7 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
       });
       onClose();
     } catch {
-      setManualError("Error al agregar el libro");
+      toast.error("Error al agregar el libro");
     } finally {
       setManualLoading(false);
     }
@@ -218,13 +213,6 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
               />
             )}
           </div>
-
-          {addError && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-              <AlertCircle size={14} className="flex-shrink-0" />
-              <span>{addError}</span>
-            </div>
-          )}
 
           <div className="max-h-80 overflow-y-auto -mx-2 px-2">
             {results.length > 0 ? (
@@ -308,7 +296,6 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
               <option value="reading">Leyendo</option>
             </select>
           </div>
-          {manualError && <p className="text-sm text-red-500">{manualError}</p>}
           <div className="flex gap-2 justify-end pt-1">
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="submit" loading={manualLoading}>

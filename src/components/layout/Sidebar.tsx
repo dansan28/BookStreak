@@ -15,7 +15,7 @@ import { cn } from "@/utils/cn";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/books", icon: BookOpen, label: "Libros" },
+  { href: "/books", icon: BookOpen, label: "Biblioteca" },
   { href: "/recommendations", icon: Sparkles, label: "Descubrir" },
   { href: "/gallery", icon: Images, label: "Galería" },
   { href: "/stats", icon: BarChart2, label: "Estadísticas" },

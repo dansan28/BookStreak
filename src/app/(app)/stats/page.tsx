@@ -38,10 +38,10 @@ export default async function StatsPage() {
     supabase.from("books").select("id").eq("user_id", user.id).eq("status", "finished"),
     supabase
       .from("reading_sessions")
-      .select("id, duration_minutes, pages_read, date, books(title)")
+      .select("id, duration_minutes, pages_read, date, created_at, books(title, cover_url)")
       .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .limit(20),
+      .order("created_at", { ascending: false })
+      .limit(100),
     supabase
       .from("reading_sessions")
       .select("date, duration_minutes")

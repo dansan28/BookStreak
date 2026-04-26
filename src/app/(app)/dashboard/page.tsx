@@ -3,7 +3,6 @@ import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { ReadingTimerWidget } from "@/components/dashboard/ReadingTimerWidget";
 import { StatsStrip } from "@/components/dashboard/StatsStrip";
 import { CurrentlyReadingCard } from "@/components/dashboard/CurrentlyReadingCard";
-import { RecentSessionsCard } from "@/components/dashboard/RecentSessionsCard";
 import { todayDateString } from "@/utils/formatTime";
 
 export default async function DashboardPage() {
@@ -21,7 +20,6 @@ export default async function DashboardPage() {
     { data: todaySessions },
     { data: allSessions },
     { data: finishedBooks },
-    { data: recentSessions },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
     supabase
@@ -45,24 +43,12 @@ export default async function DashboardPage() {
       .select("id")
       .eq("user_id", user.id)
       .eq("status", "finished"),
-    supabase
-      .from("reading_sessions")
-      .select("id, duration_minutes, pages_read, date, books(title, cover_url)")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(5),
   ]);
 
   const todayMinutes = (todaySessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
   const totalMinutes = (allSessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
   const totalPages = (allSessions ?? []).reduce((s, r) => s + r.pages_read, 0);
   const booksFinished = (finishedBooks ?? []).length;
-
-  const sessionsForDisplay = (recentSessions ?? []).map((s) => ({
-    ...s,
-    books: Array.isArray(s.books) ? (s.books[0] ?? null) : s.books,
-  }));
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
@@ -99,9 +85,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Actividad reciente */}
-      <RecentSessionsCard sessions={sessionsForDisplay as Parameters<typeof RecentSessionsCard>[0]["sessions"]} />
 
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Play, Square, BookOpen, Plus, Camera, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Play, Square, BookOpen, Plus, Camera, X, Trash2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,10 +12,11 @@ import { useReadingTimer } from "@/context/ReadingTimerContext";
 import { createClient } from "@/lib/supabase/client";
 import { uploadReadingPhoto } from "@/lib/storage";
 import { formatSeconds } from "@/utils/formatTime";
+import { cn } from "@/utils/cn";
 import { BookFinishedModal } from "@/components/dashboard/BookFinishedModal";
 import type { Book } from "@/types";
 export function ReadingTimerWidget({ books }: { books: Book[] }) {
-  const { isRunning, elapsedSeconds, selectedBookId, start, stop } = useReadingTimer();
+  const { isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset } = useReadingTimer();
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [showStopModal, setShowStopModal] = useState(false);
   const [pagesRead, setPagesRead] = useState("0");
@@ -23,7 +24,25 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [finishedBook, setFinishedBook] = useState<Book | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen]);
+
+  const handleSelectBook = useCallback((id: string) => {
+    setSelectedBook(id);
+    setDropdownOpen(false);
+  }, []);
 
   // Default to first "reading" book, then first "pending" book
   useEffect(() => {
@@ -62,6 +81,23 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleOpenStopModal = () => {
+    pause();
+    setShowStopModal(true);
+  };
+
+  const handleDismiss = () => {
+    resume();
+    setShowStopModal(false);
+  };
+
+  const handleDiscard = () => {
+    reset();
+    setShowStopModal(false);
+    setPagesRead("0");
+    removePhoto();
   };
 
   const handleStop = async () => {
@@ -139,10 +175,10 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
 
           {/* Info + controls */}
           <div className="flex-1 min-w-0">
-            {isRunning ? (
+            {isRunning || !!selectedBookId ? (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isRunning ? "bg-red-500 animate-pulse" : "bg-amber-400"}`} />
                   <span className="text-xs text-[var(--text-muted)] truncate">
                     {currentBook?.title ?? "Leyendo..."}
                   </span>
@@ -150,7 +186,7 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
                 <div className="text-3xl font-mono font-black text-[var(--text-primary)] leading-none tracking-tight">
                   {formatSeconds(elapsedSeconds)}
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">sesión activa</p>
+                <p className="text-xs text-[var(--text-muted)]">{isRunning ? "sesión activa" : "pausado"}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -181,8 +217,8 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
 
           {/* Buttons */}
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            {isRunning ? (
-              <Button variant="danger" size="md" onClick={() => setShowStopModal(true)}>
+            {isRunning || !!selectedBookId ? (
+              <Button variant="danger" size="md" onClick={handleOpenStopModal}>
                 <Square size={13} />
                 Detener
               </Button>
@@ -198,28 +234,74 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
               </Button>
             )}
 
-            {/* Book selector — only when not running and multiple books */}
-            {!isRunning && books.length > 1 && (
-              <select
-                value={selectedBook}
-                onChange={(e) => setSelectedBook(e.target.value)}
-                className="text-xs bg-[var(--bg-card-hover)] border border-[var(--border)] rounded-lg px-2 py-1 text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-plum/40 cursor-pointer max-w-36"
-              >
-                {readingBooks.length > 0 && (
-                  <optgroup label="Leyendo">
-                    {readingBooks.map((b) => (
-                      <option key={b.id} value={b.id}>{b.title}</option>
-                    ))}
-                  </optgroup>
+            {/* Book selector — only when idle and multiple books */}
+            {!isRunning && !selectedBookId && books.length > 1 && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 max-w-36 transition-colors",
+                    "bg-[var(--bg-card-hover)] border border-[var(--border)]",
+                    "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-plum/30",
+                    dropdownOpen && "border-plum/40 text-[var(--text-primary)]"
+                  )}
+                >
+                  <span className="truncate flex-1 text-left leading-tight">
+                    {currentBook?.title ?? "Libro..."}
+                  </span>
+                  <ChevronDown
+                    size={11}
+                    className={cn("flex-shrink-0 transition-transform duration-150", dropdownOpen && "rotate-180")}
+                  />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 z-30 w-56 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+                    {readingBooks.length > 0 && (
+                      <>
+                        <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                          Leyendo
+                        </p>
+                        {readingBooks.map((b) => (
+                          <button
+                            key={b.id}
+                            onClick={() => handleSelectBook(b.id)}
+                            className={cn(
+                              "w-full text-left px-3 py-2 text-xs truncate transition-colors",
+                              selectedBook === b.id
+                                ? "text-plum font-medium bg-plum/8"
+                                : "text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]"
+                            )}
+                          >
+                            {b.title}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {pendingBooks.length > 0 && (
+                      <>
+                        <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                          Pendientes
+                        </p>
+                        {pendingBooks.map((b) => (
+                          <button
+                            key={b.id}
+                            onClick={() => handleSelectBook(b.id)}
+                            className={cn(
+                              "w-full text-left px-3 py-2 text-xs truncate transition-colors",
+                              selectedBook === b.id
+                                ? "text-plum font-medium bg-plum/8"
+                                : "text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]"
+                            )}
+                          >
+                            {b.title}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
                 )}
-                {pendingBooks.length > 0 && (
-                  <optgroup label="Pendientes">
-                    {pendingBooks.map((b) => (
-                      <option key={b.id} value={b.id}>{b.title}</option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+              </div>
             )}
           </div>
         </div>
@@ -232,13 +314,18 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
         />
       )}
 
-      <Modal open={showStopModal} onClose={() => setShowStopModal(false)} title="Finalizar sesión">
+      <Modal open={showStopModal} onClose={handleDismiss} title="Finalizar sesión">
         <div className="space-y-4">
           <div className="bg-[var(--bg-card-hover)] rounded-xl p-3 text-center">
-            <div className="text-2xl font-mono font-bold text-[var(--text-primary)]">
-              {formatSeconds(elapsedSeconds)}
+            <div className="flex items-center justify-center gap-2.5">
+              <div className="text-2xl font-mono font-bold text-[var(--text-primary)]">
+                {formatSeconds(elapsedSeconds)}
+              </div>
+              <span className="text-[10px] font-medium text-[var(--text-muted)] bg-[var(--bg-card)] border border-[var(--border)] rounded-full px-2 py-0.5 leading-none">
+                pausado
+              </span>
             </div>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">tiempo leído</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">tiempo leído</p>
           </div>
           <Input
             label="Páginas leídas (opcional)"
@@ -283,9 +370,19 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
             />
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setShowStopModal(false)}>Cancelar</Button>
-            <Button onClick={handleStop} loading={saving}>Guardar sesión</Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDiscard}
+              disabled={saving}
+              title="Descartar sesión"
+              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+            >
+              <Trash2 size={15} />
+            </button>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="ghost" onClick={handleDismiss} disabled={saving}>Cancelar</Button>
+              <Button onClick={handleStop} loading={saving}>Guardar sesión</Button>
+            </div>
           </div>
         </div>
       </Modal>
