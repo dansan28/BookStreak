@@ -14,7 +14,6 @@ export default function SignupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", password: "", confirm: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,37 +45,23 @@ export default function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
         data: { username: form.username.trim() },
       },
     });
     if (error) {
-      setError(error.message);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("rate limit") || msg.includes("too many requests")) {
+        setError("Demasiados intentos de registro. Espera unos minutos antes de intentarlo de nuevo.");
+      } else if (msg.includes("already registered") || msg.includes("user already exists")) {
+        setError("Ya existe una cuenta con ese email.");
+      } else {
+        setError("Ocurrió un error al crear la cuenta. Inténtalo de nuevo.");
+      }
       setLoading(false);
       return;
     }
-    setSuccess(true);
-    setLoading(false);
+    router.push("/dashboard");
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl mb-4">
-            <span className="text-3xl">✉️</span>
-          </div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Revisa tu email</h2>
-          <p className="text-sm text-[var(--text-muted)]">
-            Te enviamos un enlace de confirmación a <strong>{form.email}</strong>
-          </p>
-          <Link href="/login" className="mt-6 inline-block text-sm text-plum font-medium hover:text-plum-dark">
-            Volver al inicio de sesión
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
