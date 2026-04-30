@@ -1,41 +1,41 @@
-import { Clock, BookCheck, FileText, Flame } from "lucide-react";
+import { Clock, FileText, Flame, CalendarDays } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { formatTotalMinutes } from "@/utils/formatTime";
 
 interface StatsStripProps {
-  totalMinutes: number;
-  booksFinished: number;
-  totalPages: number;
-  longestStreak: number;
+  weekMinutes: number;
+  weekPages: number;
+  weekSessions: number;
+  currentStreak: number;
 }
 
-export function StatsStrip({ totalMinutes, booksFinished, totalPages, longestStreak }: StatsStripProps) {
+export function StatsStrip({ weekMinutes, weekPages, weekSessions, currentStreak }: StatsStripProps) {
   const stats = [
     {
       icon: Clock,
-      label: "Tiempo total",
-      value: formatTotalMinutes(totalMinutes),
+      label: "Tiempo (sem.)",
+      value: formatTotalMinutes(weekMinutes),
       color: "text-blue-500",
       bg: "bg-blue-50 dark:bg-blue-900/20",
     },
     {
-      icon: BookCheck,
-      label: "Libros leídos",
-      value: String(booksFinished),
-      color: "text-emerald-500",
-      bg: "bg-emerald-50 dark:bg-emerald-900/20",
-    },
-    {
       icon: FileText,
-      label: "Páginas leídas",
-      value: totalPages > 999 ? `${(totalPages / 1000).toFixed(1)}k` : String(totalPages),
+      label: "Páginas (sem.)",
+      value: weekPages > 999 ? `${(weekPages / 1000).toFixed(1)}k` : String(weekPages),
       color: "text-plum",
       bg: "bg-plum/10 dark:bg-plum/20",
     },
     {
+      icon: CalendarDays,
+      label: "Sesiones (sem.)",
+      value: String(weekSessions),
+      color: "text-emerald-500",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    },
+    {
       icon: Flame,
-      label: "Mejor racha",
-      value: `${longestStreak}d`,
+      label: "Racha actual",
+      value: `${currentStreak}d`,
       color: "text-orange-500",
       bg: "bg-orange-50 dark:bg-orange-900/20",
     },

@@ -17,7 +17,7 @@ import { BookFinishedModal } from "@/components/dashboard/BookFinishedModal";
 import { SessionCompleteCard, type SessionCompleteData } from "@/components/dashboard/SessionCompleteCard";
 import type { Book } from "@/types";
 export function ReadingTimerWidget({ books }: { books: Book[] }) {
-  const { isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset } = useReadingTimer();
+  const { isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset, setActiveBook } = useReadingTimer();
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [showStopModal, setShowStopModal] = useState(false);
   const [pagesRead, setPagesRead] = useState("0");
@@ -44,16 +44,19 @@ export function ReadingTimerWidget({ books }: { books: Book[] }) {
 
   const handleSelectBook = useCallback((id: string) => {
     setSelectedBook(id);
+    setActiveBook(id);
     setDropdownOpen(false);
-  }, []);
+  }, [setActiveBook]);
 
   // Default to first "reading" book, then first "pending" book
   useEffect(() => {
     if (books.length > 0 && !selectedBook) {
       const reading = books.find((b) => b.status === "reading");
-      setSelectedBook(reading?.id ?? books[0].id);
+      const defaultId = reading?.id ?? books[0].id;
+      setSelectedBook(defaultId);
+      setActiveBook(defaultId);
     }
-  }, [books, selectedBook]);
+  }, [books, selectedBook, setActiveBook]);
 
   const activeBookId = selectedBookId ?? selectedBook;
   const currentBook = books.find((b) => b.id === activeBookId);

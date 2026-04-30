@@ -15,6 +15,8 @@ interface TimerContextValue {
   isRunning: boolean;
   elapsedSeconds: number;
   selectedBookId: string | null;
+  activeBookId: string | null;
+  setActiveBook: (id: string) => void;
   start: (bookId: string) => void;
   pause: () => void;
   resume: () => void;
@@ -26,6 +28,8 @@ const ReadingTimerContext = createContext<TimerContextValue>({
   isRunning: false,
   elapsedSeconds: 0,
   selectedBookId: null,
+  activeBookId: null,
+  setActiveBook: () => {},
   start: () => {},
   pause: () => {},
   resume: () => {},
@@ -37,8 +41,11 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
+  const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
+
+  const setActiveBook = useCallback((id: string) => setActiveBookId(id), []);
 
   useEffect(() => {
     if (isRunning) {
@@ -56,6 +63,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
 
   const start = useCallback((bookId: string) => {
     setSelectedBookId(bookId);
+    setActiveBookId(bookId);
     setElapsedSeconds(0);
     setIsRunning(true);
   }, []);
@@ -113,6 +121,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
 
       setElapsedSeconds(0);
       setSelectedBookId(null);
+      setActiveBookId(null);
     },
     [selectedBookId, elapsedSeconds]
   );
@@ -121,6 +130,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
     setIsRunning(false);
     setElapsedSeconds(0);
     setSelectedBookId(null);
+    setActiveBookId(null);
   }, []);
 
   useEffect(() => {
@@ -143,7 +153,7 @@ export function ReadingTimerProvider({ children }: { children: React.ReactNode }
 
   return (
     <ReadingTimerContext.Provider
-      value={{ isRunning, elapsedSeconds, selectedBookId, start, pause, resume, stop, reset }}
+      value={{ isRunning, elapsedSeconds, selectedBookId, activeBookId, setActiveBook, start, pause, resume, stop, reset }}
     >
       {children}
     </ReadingTimerContext.Provider>

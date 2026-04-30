@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Pencil, Trash2, TriangleAlert } from "lucide-react";
+import { ArrowLeft, BookOpen, Pencil, Trash2, TriangleAlert, Clock, FileText } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -14,9 +14,17 @@ import { useBooks } from "@/hooks/useBooks";
 import { formatTotalMinutes } from "@/utils/formatTime";
 import type { Book } from "@/types";
 
+interface SessionRow {
+  id: string;
+  duration_minutes: number;
+  pages_read: number;
+  date: string;
+  note: string | null;
+}
+
 interface Props {
   book: Book;
-  sessions: { duration_minutes: number; pages_read: number; date: string }[];
+  sessions: SessionRow[];
   totalMinutes: number;
 }
 
@@ -130,6 +138,49 @@ export function BookDetailClient({ book, sessions, totalMinutes }: Props) {
           </Button>
         </div>
       </Card>
+
+      {sessions.length > 0 && (
+        <Card className="p-5">
+          <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-3">
+            Historial de sesiones
+          </h4>
+          <div className="space-y-2">
+            {sessions.map((s) => (
+              <div
+                key={s.id}
+                className="flex flex-col gap-1 p-3 rounded-xl bg-[var(--bg-card-hover)]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {new Date(s.date + "T12:00:00").toLocaleDateString("es", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+                    {s.pages_read > 0 && (
+                      <span className="flex items-center gap-1">
+                        <FileText size={11} />
+                        {s.pages_read} pág
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Clock size={11} />
+                      {formatTotalMinutes(s.duration_minutes)}
+                    </span>
+                  </div>
+                </div>
+                {s.note && (
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed italic">
+                    &ldquo;{s.note}&rdquo;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <EditBookModal book={book} open={showEdit} onClose={() => setShowEdit(false)} />
 

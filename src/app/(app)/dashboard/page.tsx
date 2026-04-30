@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { ReadingTimerWidget } from "@/components/dashboard/ReadingTimerWidget";
 import { StatsStrip } from "@/components/dashboard/StatsStrip";
-import { CurrentlyReadingCard } from "@/components/dashboard/CurrentlyReadingCard";
-import { todayDateString } from "@/utils/formatTime";
+import { WeeklyMiniChart } from "@/components/dashboard/WeeklyMiniChart";
+import { OtherReadingBooks } from "@/components/dashboard/OtherReadingBooks";
+import { todayDateString, sevenDaysAgoString } from "@/utils/formatTime";
+import type { DailyStats } from "@/types";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,11 +15,13 @@ export default async function DashboardPage() {
   if (!user) return null;
 
   const today = todayDateString();
+  const sevenDaysAgo = sevenDaysAgoString();
 
   const [
     { data: profile },
     { data: readingBooks },
     { data: todaySessions },
+    { data: weekSessions },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", user.id).single(),
     supabase
@@ -32,12 +36,31 @@ export default async function DashboardPage() {
       .select("duration_minutes")
       .eq("user_id", user.id)
       .eq("date", today),
+    supabase
+      .from("reading_sessions")
+      .select("date, duration_minutes, pages_read")
+      .eq("user_id", user.id)
+      .gte("date", sevenDaysAgo)
+      .lte("date", today)
+      .order("date"),
   ]);
 
   const todayMinutes = (todaySessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
-  const totalMinutes = profile?.total_minutes ?? 0;
-  const totalPages = profile?.total_pages_read ?? 0;
-  const booksFinished = profile?.books_finished ?? 0;
+
+  const weekMinutes = (weekSessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
+  const weekPages = (weekSessions ?? []).reduce((s, r) => s + r.pages_read, 0);
+  const weekSessionCount = (weekSessions ?? []).length;
+
+  const weekMap: Record<string, number> = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    weekMap[d.toISOString().split("T")[0]] = 0;
+  }
+  (weekSessions ?? []).forEach((s) => {
+    if (weekMap[s.date] !== undefined) weekMap[s.date] += s.duration_minutes;
+  });
+  const weekData: DailyStats[] = Object.entries(weekMap).map(([date, total_minutes]) => ({ date, total_minutes }));
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
@@ -51,29 +74,20 @@ export default async function DashboardPage() {
           Sesión de lectura
         </p>
         <ReadingTimerWidget books={readingBooks ?? []} />
+        <OtherReadingBooks books={readingBooks ?? []} />
       </div>
 
-      {/* Stats strip */}
+      {/* Stats strip semanal */}
       <StatsStrip
-        totalMinutes={totalMinutes}
-        booksFinished={booksFinished}
-        totalPages={totalPages}
-        longestStreak={profile?.longest_streak ?? 0}
+        weekMinutes={weekMinutes}
+        weekPages={weekPages}
+        weekSessions={weekSessionCount}
+        currentStreak={profile?.current_streak ?? 0}
       />
 
-      {/* Leyendo ahora (solo si hay más de un libro) */}
-      {(readingBooks ?? []).length > 1 && (
-        <div>
-          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2 px-1">
-            También leyendo
-          </p>
-          <div className="space-y-2">
-            {(readingBooks ?? []).slice(1).map((book) => (
-              <CurrentlyReadingCard key={book.id} book={book} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Actividad semanal */}
+      <WeeklyMiniChart data={weekData} />
+
 
     </div>
   );

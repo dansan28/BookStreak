@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   BookOpen,
-  BarChart2,
   Settings,
   BookMarked,
   Sparkles,
   Images,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 
@@ -18,7 +18,7 @@ const navItems = [
   { href: "/books", icon: BookOpen, label: "Biblioteca" },
   { href: "/recommendations", icon: Sparkles, label: "Descubrir" },
   { href: "/gallery", icon: Images, label: "Galería" },
-  { href: "/stats", icon: BarChart2, label: "Estadísticas" },
+  { href: "/profile", icon: UserCircle, label: "Mi perfil" },
   { href: "/settings", icon: Settings, label: "Ajustes" },
 ];
 

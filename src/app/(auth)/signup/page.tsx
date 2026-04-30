@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "", confirm: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -23,6 +23,14 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.username.trim()) {
+      setError("El nombre de usuario es obligatorio");
+      return;
+    }
+    if (form.username.trim().length < 3) {
+      setError("El nombre de usuario debe tener al menos 3 caracteres");
+      return;
+    }
     if (form.password !== form.confirm) {
       setError("Las contraseñas no coinciden");
       return;
@@ -39,6 +47,7 @@ export default function SignupPage() {
       password: form.password,
       options: {
         emailRedirectTo: `${location.origin}/auth/callback`,
+        data: { username: form.username.trim() },
       },
     });
     if (error) {
@@ -82,6 +91,16 @@ export default function SignupPage() {
 
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 shadow-card">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Nombre de usuario"
+              id="username"
+              name="username"
+              type="text"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Cómo quieres que te llamen"
+              required
+            />
             <Input
               label="Email"
               id="email"

@@ -22,10 +22,10 @@ export default async function BookDetailPage({
 
   const { data: sessions } = await supabase
     .from("reading_sessions")
-    .select("duration_minutes, pages_read, date")
+    .select("id, duration_minutes, pages_read, date, note")
     .eq("book_id", book.id)
     .order("date", { ascending: false })
-    .limit(10);
+    .limit(20);
 
   const totalMinutes = (sessions ?? []).reduce((s, r) => s + r.duration_minutes, 0);
 

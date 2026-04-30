@@ -7,6 +7,8 @@
 create table public.profiles (
   id                  uuid primary key default gen_random_uuid(),
   user_id             uuid not null unique references auth.users(id) on delete cascade,
+  username            text,
+  avatar_url          text,
   daily_goal_minutes  int not null default 30,
   theme_preference    text not null default 'system'
     check (theme_preference in ('light','dark','system')),
@@ -16,15 +18,22 @@ create table public.profiles (
   created_at          timestamptz not null default now()
 );
 
--- Auto-create profile on signup
+-- Auto-create profile on signup (reads username from auth metadata)
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
-  insert into public.profiles (user_id)
-  values (new.id);
+  insert into public.profiles (user_id, username)
+  values (new.id, new.raw_user_meta_data->>'username');
   return new;
 end;
 $$;
+
+-- Storage bucket for avatars
+-- insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict (id) do nothing;
+-- create policy "Avatars are publicly readable" on storage.objects for select using (bucket_id = 'avatars');
+-- create policy "Users can upload own avatar" on storage.objects for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+-- create policy "Users can update own avatar" on storage.objects for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+-- create policy "Users can delete own avatar" on storage.objects for delete using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -42,6 +51,7 @@ create table public.books (
     check (status in ('pending','reading','finished')),
   rating        int check (rating between 1 and 5),
   cover_url     text,
+  description   text,
   created_at    timestamptz not null default now()
 );
 
@@ -56,14 +66,18 @@ create table public.reading_sessions (
   duration_minutes int not null default 0,
   pages_read       int not null default 0,
   date             date not null,
+  photo_url        text,
+  note             text,
   created_at       timestamptz not null default now()
 );
 
 create index sessions_user_date_idx on public.reading_sessions(user_id, date);
 create index sessions_book_idx on public.reading_sessions(book_id);
 
--- Add note column (run separately if table already exists)
+-- Add missing columns (run separately if table already exists)
 -- alter table public.reading_sessions add column if not exists note text;
+-- alter table public.reading_sessions add column if not exists photo_url text;
+-- alter table public.books add column if not exists description text;
 
 -- 6. RUNNING TOTALS IN PROFILES
 -- Run this block in the Supabase SQL editor after the tables above exist.

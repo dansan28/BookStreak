@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, BarChart2, Settings, Sparkles, Images } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, Sparkles, Images, UserCircle } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 const navItems = [
@@ -10,7 +10,7 @@ const navItems = [
   { href: "/books", icon: BookOpen, label: "Libros" },
   { href: "/recommendations", icon: Sparkles, label: "Descubrir" },
   { href: "/gallery", icon: Images, label: "Galería" },
-  { href: "/stats", icon: BarChart2, label: "Stats" },
+  { href: "/profile", icon: UserCircle, label: "Perfil" },
   { href: "/settings", icon: Settings, label: "Ajustes" },
 ];
 
