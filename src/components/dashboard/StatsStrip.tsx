@@ -49,8 +49,6 @@ export function StatsStrip({ weekMinutes, weekPages, weekSessions, currentStreak
             key={label}
             className={[
               "flex items-center gap-3 px-4 py-3 sm:py-0",
-              // Mobile: separar columna izquierda de derecha
-              i % 2 === 0 ? "border-r border-[var(--border)] sm:border-r-0" : "",
               // Mobile: separar fila superior de inferior
               i < 2 ? "border-b border-[var(--border)] sm:border-b-0" : "",
               // Desktop: separar items con borde izquierdo
