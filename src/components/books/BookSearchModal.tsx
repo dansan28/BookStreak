@@ -240,7 +240,7 @@ export function BookSearchModal({ open, onClose }: BookSearchModalProps) {
             ) : !query.trim() ? (
               <div className="flex flex-col items-center gap-2 py-10 text-[var(--text-muted)]">
                 <Search size={20} className="opacity-40" />
-                <p className="text-sm">Escribe para buscar en Google Books</p>
+                <p className="text-sm">Escribe título + autor para mejores resultados</p>
               </div>
             ) : null}
           </div>
