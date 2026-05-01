@@ -43,9 +43,22 @@ export function StatsStrip({ weekMinutes, weekPages, weekSessions, currentStreak
 
   return (
     <Card className="p-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
-        {stats.map(({ icon: Icon, label, value, color, bg }) => (
-          <div key={label} className="flex items-center gap-3 px-4 py-3 sm:py-0 first:pl-0 last:pr-0">
+      <div className="grid grid-cols-2 sm:grid-cols-4">
+        {stats.map(({ icon: Icon, label, value, color, bg }, i) => (
+          <div
+            key={label}
+            className={[
+              "flex items-center gap-3 px-4 py-3 sm:py-0",
+              // Mobile: separar columna izquierda de derecha
+              i % 2 === 0 ? "border-r border-[var(--border)] sm:border-r-0" : "",
+              // Mobile: separar fila superior de inferior
+              i < 2 ? "border-b border-[var(--border)] sm:border-b-0" : "",
+              // Desktop: separar items con borde izquierdo
+              i > 0 ? "sm:border-l sm:border-[var(--border)]" : "",
+              i === 0 ? "pl-0" : "",
+              i === stats.length - 1 ? "pr-0" : "",
+            ].join(" ")}
+          >
             <div className={`p-2 ${bg} rounded-xl flex-shrink-0`}>
               <Icon className={color} size={16} />
             </div>
