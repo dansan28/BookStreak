@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "BookStreak — Tu hábito de lectura",
   description: "Construye y mantén tu hábito de lectura diaria con streaks, sesiones y metas personalizadas.",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
