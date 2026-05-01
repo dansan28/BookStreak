@@ -1,5 +1,5 @@
 import { Flame, Check } from "lucide-react";
-import { getGreeting } from "@/utils/formatTime";
+import { Greeting } from "@/components/dashboard/Greeting";
 import { getStreakMessage } from "@/utils/streakUtils";
 import type { Profile } from "@/types";
 
@@ -32,7 +32,7 @@ export function DashboardHero({ profile, todayMinutes }: DashboardHeroProps) {
         {/* Greeting + fuego inline + badge de objetivo */}
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">{getGreeting()}</h2>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]"><Greeting /></h2>
 
             <Flame
               size={20}
