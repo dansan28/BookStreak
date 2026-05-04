@@ -53,7 +53,7 @@ export function DashboardHero({ profile, todayMinutes }: DashboardHeroProps) {
           <p className="text-sm text-[var(--text-muted)] mt-0.5 capitalize">{today}</p>
         </div>
 
-        <div className="flex items-center gap-5 ml-auto flex-wrap">
+        <div className="flex items-center gap-5 ml-auto">
 
           {/* Racha */}
           <div className="flex items-center gap-3">
