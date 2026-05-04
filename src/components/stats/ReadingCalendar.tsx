@@ -120,7 +120,7 @@ export function ReadingCalendar({ data, currentStreak, selectedDate, onDayClick 
           const hasRead  = minutes > 0;
           const isToday  = dateStr === todayStr;
           const isFuture = new Date(dateStr + "T12:00:00") > today;
-          const isStreak = streakDates.has(dateStr);
+          const isStreak = streakDates.has(dateStr) && hasRead;
 
           // Columna dentro de la fila (0=lun … 6=dom) — decide si hay barra izq/der
           const col = i % 7;
