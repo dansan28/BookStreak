@@ -34,7 +34,7 @@ export default async function ProfilePage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("current_streak, longest_streak, total_minutes, books_finished, total_pages_read, created_at, username, avatar_url")
+      .select("current_streak, longest_streak, total_minutes, books_finished, total_pages_read, created_at, username, avatar_url, last_read_date")
       .eq("user_id", user.id)
       .single(),
     supabase
