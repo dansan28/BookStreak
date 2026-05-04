@@ -8,6 +8,7 @@ import { AchievementsSection } from "@/components/profile/AchievementsSection";
 import { ReadingInsightsCard } from "@/components/profile/ReadingInsightsCard";
 import type { ReadingInsights } from "@/components/profile/ReadingInsightsCard";
 import { formatTotalMinutes, sevenDaysAgoString, todayDateString } from "@/utils/formatTime";
+import { getActiveStreak } from "@/utils/streakUtils";
 import type { DailyStats } from "@/types";
 
 export default async function ProfilePage() {
@@ -162,7 +163,7 @@ export default async function ProfilePage() {
   // -------------------------
 
   const overallStats = [
-    { icon: Flame, label: "Racha actual", value: `${profile?.current_streak ?? 0} días`, color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/30" },
+    { icon: Flame, label: "Racha actual", value: `${getActiveStreak(profile?.current_streak ?? 0, profile?.last_read_date ?? null)} días`, color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/30" },
     { icon: TrendingUp, label: "Mejor racha", value: `${profile?.longest_streak ?? 0} días`, color: "text-plum", bg: "bg-plum/10 dark:bg-plum/20" },
     { icon: Clock, label: "Tiempo total", value: formatTotalMinutes(totalMinutes), color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/30" },
     { icon: BookCheck, label: "Libros leídos", value: String(profile?.books_finished ?? 0), color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
@@ -240,7 +241,7 @@ export default async function ProfilePage() {
         </h3>
         <CalendarWithDetail
           data={calendarData}
-          currentStreak={profile?.current_streak ?? 0}
+          currentStreak={getActiveStreak(profile?.current_streak ?? 0, profile?.last_read_date ?? null)}
           preloadedSessions={preloadedSessions}
         />
       </Card>

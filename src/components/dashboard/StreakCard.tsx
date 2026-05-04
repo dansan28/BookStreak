@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/Card";
 import { Flame } from "lucide-react";
-import { getStreakMessage, isReadToday } from "@/utils/streakUtils";
+import { getStreakMessage, isReadToday, getActiveStreak } from "@/utils/streakUtils";
 import type { Profile } from "@/types";
 
 export function StreakCard({ profile }: { profile: Profile | null }) {
-  const streak = profile?.current_streak ?? 0;
+  const streak = getActiveStreak(profile?.current_streak ?? 0, profile?.last_read_date ?? null);
   const longest = profile?.longest_streak ?? 0;
   const readToday = isReadToday(profile?.last_read_date ?? null);
 

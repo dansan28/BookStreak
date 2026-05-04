@@ -1,6 +1,6 @@
 import { Flame, Check } from "lucide-react";
 import { Greeting } from "@/components/dashboard/Greeting";
-import { getStreakMessage } from "@/utils/streakUtils";
+import { getStreakMessage, getActiveStreak } from "@/utils/streakUtils";
 import type { Profile } from "@/types";
 
 interface DashboardHeroProps {
@@ -9,7 +9,7 @@ interface DashboardHeroProps {
 }
 
 export function DashboardHero({ profile, todayMinutes }: DashboardHeroProps) {
-  const streak = profile?.current_streak ?? 0;
+  const streak = getActiveStreak(profile?.current_streak ?? 0, profile?.last_read_date ?? null);
   const goal = profile?.daily_goal_minutes ?? 30;
   const percent = Math.min(100, Math.round((todayMinutes / goal) * 100));
   const reached = todayMinutes >= goal;

@@ -5,6 +5,7 @@ import { StatsStrip } from "@/components/dashboard/StatsStrip";
 import { WeeklyMiniChart } from "@/components/dashboard/WeeklyMiniChart";
 import { OtherReadingBooks } from "@/components/dashboard/OtherReadingBooks";
 import { todayDateString, sevenDaysAgoString } from "@/utils/formatTime";
+import { getActiveStreak } from "@/utils/streakUtils";
 import type { DailyStats } from "@/types";
 
 export default async function DashboardPage() {
@@ -82,7 +83,7 @@ export default async function DashboardPage() {
         weekMinutes={weekMinutes}
         weekPages={weekPages}
         weekSessions={weekSessionCount}
-        currentStreak={profile?.current_streak ?? 0}
+        currentStreak={getActiveStreak(profile?.current_streak ?? 0, profile?.last_read_date ?? null)}
       />
 
       {/* Actividad semanal */}
